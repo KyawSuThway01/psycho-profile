@@ -1,0 +1,685 @@
+<style>
+  /* ── Base resets inside form ───────────────────────────────────────────── */
+  #psycho-form, #psycho-form .field input, #psycho-form .field select,
+  .card:has(#psycho-form) { background: transparent !important; }
+  .card:has(#psycho-form) { margin-top: 40px !important; }
+
+  /* ── Progress bar ──────────────────────────────────────────────────────── */
+  .wiz-progress { display: flex; align-items: center; gap: 0; margin-bottom: 36px; }
+  .wiz-step-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-head); font-size: 10px; letter-spacing: 1px;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.3);
+    transition: all 0.3s; cursor: default; flex-shrink: 0; position: relative;
+  }
+  .wiz-step-dot.active {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(0,255,229,0.1);
+    box-shadow: 0 0 14px rgba(0,255,229,0.25);
+  }
+  .wiz-step-dot.done {
+    border-color: rgba(0,255,229,0.4); color: rgba(0,255,229,0.6);
+    background: rgba(0,255,229,0.06);
+  }
+  .wiz-step-dot.done::after { content: '✓'; font-size: 11px; }
+  .wiz-step-dot:not(.done)::after { content: attr(data-n); }
+  .wiz-connector {
+    flex: 1; height: 1px;
+    background: rgba(255,255,255,0.08);
+    transition: background 0.3s;
+  }
+  .wiz-connector.done { background: rgba(0,255,229,0.3); }
+
+  /* ── Step label strip ──────────────────────────────────────────────────── */
+  .wiz-labels {
+    display: flex; justify-content: space-between;
+    margin-top: -24px; margin-bottom: 28px;
+  }
+  .wiz-label {
+    font-family: var(--font-head); font-size: 11px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: rgba(255,255,255,0.35);
+    text-align: center; width: 80px; transition: color 0.3s;
+  }
+  .wiz-label.active { color: var(--accent); }
+
+  /* ── Step panels ───────────────────────────────────────────────────────── */
+  .wiz-panel { display: none; animation: fadeSlide 0.3s ease; }
+  .wiz-panel.active { display: block; }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Section title ─────────────────────────────────────────────────────── */
+  .form-section-title {
+    font-family: var(--font-head); font-size: 11px; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .form-section-title::before {
+    content: ''; display: inline-block; width: 18px; height: 2px;
+    background: var(--accent); box-shadow: 0 0 8px var(--accent);
+  }
+  .form-section-subtitle {
+    font-family: var(--font-body); font-size: 12px; letter-spacing: 1px;
+    color: rgba(255,255,255,0.35); margin-bottom: 26px; padding-left: 28px;
+  }
+
+  /* ── Fields ────────────────────────────────────────────────────────────── */
+  #psycho-form .field { margin-bottom: 28px !important; }
+  #psycho-form .field > label {
+    display: block; font-size: 13px !important; letter-spacing: 3px !important;
+    color: var(--muted) !important; text-transform: uppercase; margin-bottom: 14px !important;
+  }
+  #psycho-form .field input[type="text"],
+  #psycho-form .field input[type="number"],
+  #psycho-form .field select,
+  #psycho-form .field textarea {
+    font-size: 15px !important; padding: 15px 20px !important;
+    border: 1px solid rgba(0,255,229,0.12) !important;
+    border-bottom: 2px solid rgba(0,255,229,0.3) !important;
+    border-radius: 4px !important; background: rgba(0,255,229,0.03) !important;
+    color: var(--text) !important; font-family: var(--font-body) !important;
+    transition: all 0.25s !important; width: 100%;
+  }
+  #psycho-form .field input[type="text"]:focus,
+  #psycho-form .field input[type="number"]:focus,
+  #psycho-form .field select:focus,
+  #psycho-form .field textarea:focus {
+    border-bottom-color: var(--accent) !important;
+    background: rgba(0,255,229,0.05) !important;
+    box-shadow: 0 0 24px rgba(0,255,229,0.07) !important; outline: none !important;
+  }
+  #psycho-form .field input::placeholder,
+  #psycho-form .field textarea::placeholder { color: rgba(90,106,122,0.6); font-style: italic; }
+  #psycho-form .field select option { background: #0d0d14; }
+  #psycho-form .field textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+  @media (max-width: 600px) { .field-row { grid-template-columns: 1fr; } }
+  .field-row .field { margin-bottom: 0 !important; }
+
+  /* ── Radio / choice cards ──────────────────────────────────────────────── */
+  .radio-toggle, .choice-toggle, .pet-toggle { display: none !important; }
+  #psycho-form .choice-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px;
+  }
+  #psycho-form .choice-card {
+    position: relative; display: flex; align-items: center;
+    justify-content: flex-start; padding: 14px 16px 14px 20px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.13);
+    border-left: 3px solid rgba(255,255,255,0.22); border-radius: 6px;
+    cursor: pointer; transition: all 0.18s ease; text-align: left;
+    user-select: none; min-height: 52px;
+  }
+  #psycho-form .choice-card:hover {
+    background: rgba(255,255,255,0.09); border-left-color: rgba(0,255,229,0.7);
+    transform: translateX(3px); box-shadow: -3px 0 16px rgba(0,255,229,0.08);
+  }
+  #psycho-form .choice-card .card-label {
+    font-family: var(--font-body); font-size: 12px; letter-spacing: 2px;
+    text-transform: uppercase; color: rgba(200,210,220,0.75);
+    line-height: 1.4; transition: color 0.18s;
+  }
+  #psycho-form .pet-toggle:checked + .choice-card {
+    background: rgba(0,255,229,0.1) !important; border-color: rgba(0,255,229,0.3) !important;
+    border-left: 3px solid var(--accent) !important;
+    box-shadow: -4px 0 20px rgba(0,255,229,0.14) !important; transform: translateX(3px);
+  }
+  #psycho-form .pet-toggle:checked + .choice-card .card-label { color: var(--accent); }
+  #psycho-form .pet-toggle:checked + .choice-card::before {
+    content: '✓'; position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; font-weight: 700; color: var(--accent);
+  }
+  #psycho-form .radio-toggle:checked + .choice-card {
+    background: rgba(255,45,120,0.1) !important; border-color: rgba(255,45,120,0.3) !important;
+    border-left: 3px solid #ff2d78 !important;
+    box-shadow: -4px 0 20px rgba(255,45,120,0.14) !important; transform: translateX(3px);
+  }
+  #psycho-form .radio-toggle:checked + .choice-card .card-label { color: #ff2d78; }
+  #psycho-form .radio-toggle:checked + .choice-card::before {
+    content: '✓'; position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; font-weight: 700; color: #ff2d78;
+  }
+
+  /* ── Scale questions ───────────────────────────────────────────────────── */
+  .q-list { list-style: none; padding: 0; margin: 0; }
+  .q-item { padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .q-item:last-child { border-bottom: none; }
+  .q-text {
+    font-size: 13px; letter-spacing: 1.5px; color: rgba(220,230,255,0.85);
+    margin-bottom: 18px; line-height: 1.6;
+  }
+  .q-num { display: none; }
+  .q-scale {
+    display: flex; align-items: stretch; gap: 0; width: 100%;
+    border-radius: 8px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .q-scale-label { display: none; }
+  .q-scale input[type="radio"] { display: none; }
+
+  .q-scale label {
+    flex: 1; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 11px; font-family: var(--font-body);
+    letter-spacing: 0.5px; text-transform: capitalize;
+    transition: all 0.15s ease;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+  }
+  .q-scale label:last-of-type { border-right: none; }
+
+  /* Individual colors + default dim state */
+  .q-scale label[for$="-1"] { background: rgba(150,100,255,0.06);  color: rgba(150,100,255,0.7); }
+  .q-scale label[for$="-2"] { background: rgba(100,140,255,0.06);  color: rgba(100,140,255,0.7); }
+  .q-scale label[for$="-3"] { background: rgba(180,180,200,0.05);  color: rgba(180,180,200,0.65); }
+  .q-scale label[for$="-4"] { background: rgba(80,190,255,0.06);   color: rgba(80,190,255,0.7); }
+  .q-scale label[for$="-5"] { background: rgba(0,220,200,0.06);    color: rgba(0,220,200,0.7); }
+
+  /* Hover */
+  .q-scale label[for$="-1"]:hover { background: rgba(150,100,255,0.18);  color: #9664ff; }
+  .q-scale label[for$="-2"]:hover { background: rgba(100,140,255,0.18);  color: #648cff; }
+  .q-scale label[for$="-3"]:hover { background: rgba(180,180,200,0.15);  color: #b4b4c8; }
+  .q-scale label[for$="-4"]:hover { background: rgba(80,190,255,0.18);   color: #50beff; }
+  .q-scale label[for$="-5"]:hover { background: rgba(0,220,200,0.18);    color: #00dcc8; }
+
+  /* Selected */
+  .q-scale input[type="radio"]:checked + label[for$="-1"] { background: rgba(150,100,255,0.28);  color: #9664ff; box-shadow: inset 0 -3px 0 #9664ff; font-weight: 800; }
+  .q-scale input[type="radio"]:checked + label[for$="-2"] { background: rgba(100,140,255,0.28);  color: #648cff; box-shadow: inset 0 -3px 0 #648cff; font-weight: 800; }
+  .q-scale input[type="radio"]:checked + label[for$="-3"] { background: rgba(180,180,200,0.22);  color: #b4b4c8; box-shadow: inset 0 -3px 0 #b4b4c8; font-weight: 800; }
+  .q-scale input[type="radio"]:checked + label[for$="-4"] { background: rgba(80,190,255,0.28);   color: #50beff; box-shadow: inset 0 -3px 0 #50beff; font-weight: 800; }
+  .q-scale input[type="radio"]:checked + label[for$="-5"] { background: rgba(0,220,200,0.28);    color: #00dcc8; box-shadow: inset 0 -3px 0 #00dcc8; font-weight: 800; }
+
+  /* ── Trait divider inside questions step ───────────────────────────────── */
+  .q-trait-divider {
+    display: flex; align-items: center; gap: 12px;
+    padding: 18px 0 8px; margin-top: 8px;
+  }
+  .q-trait-divider-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    font-family: var(--font-head); flex-shrink: 0;
+  }
+  .q-trait-divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+  .badge-E { background: rgba(255,180,0,0.12); border: 1px solid rgba(255,180,0,0.25); color: #ffb400; }
+  .badge-O { background: rgba(192,96,255,0.12); border: 1px solid rgba(192,96,255,0.25); color: #c060ff; }
+  .badge-A { background: rgba(0,180,255,0.12); border: 1px solid rgba(0,180,255,0.25); color: #00b4ff; }
+  .badge-C { background: rgba(0,200,120,0.12); border: 1px solid rgba(0,200,120,0.25); color: #00c878; }
+  .badge-N { background: rgba(255,80,80,0.12); border: 1px solid rgba(255,80,80,0.25); color: #ff5050; }
+
+  /* ── Nav buttons ───────────────────────────────────────────────────────── */
+  .wiz-nav {
+    display: flex; gap: 12px; margin-top: 36px;
+    justify-content: space-between; align-items: center;
+  }
+  .wiz-nav-left { display: flex; gap: 12px; }
+  .wiz-nav-right { display: flex; gap: 12px; }
+  .wiz-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 28px !important; font-size: 11px !important;
+    font-family: var(--font-head) !important; letter-spacing: 4px !important;
+    text-transform: uppercase; border-radius: 6px !important;
+    cursor: pointer; transition: all 0.2s; border: 1px solid transparent !important;
+  }
+  .wiz-btn-prev {
+    background: rgba(255,255,255,0.04) !important;
+    color: rgba(255,255,255,0.4) !important;
+    border-color: rgba(255,255,255,0.1) !important;
+  }
+  .wiz-btn-prev:hover {
+    background: rgba(255,255,255,0.08) !important;
+    color: rgba(255,255,255,0.7) !important;
+  }
+  .wiz-btn-next {
+    background: rgba(0,255,229,0.06) !important;
+    color: var(--accent) !important;
+    border-color: rgba(0,255,229,0.35) !important;
+  }
+  .wiz-btn-next:hover {
+    background: rgba(0,255,229,0.12) !important;
+    box-shadow: 0 0 28px rgba(0,255,229,0.15) !important;
+    transform: translateY(-1px);
+  }
+  .wiz-btn-submit {
+    background: rgba(0,255,229,0.06) !important;
+    color: var(--accent) !important;
+    border-color: rgba(0,255,229,0.35) !important;
+  }
+  .wiz-btn-submit:hover {
+    background: rgba(0,255,229,0.12) !important;
+    box-shadow: 0 0 28px rgba(0,255,229,0.15) !important;
+    transform: translateY(-1px);
+  }
+  .wiz-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+
+  /* ── Step counter ──────────────────────────────────────────────────────── */
+  .wiz-counter {
+    font-family: var(--font-head); font-size: 9px; letter-spacing: 3px;
+    color: rgba(255,255,255,0.25); text-transform: uppercase;
+  }
+
+  /* ── Error ─────────────────────────────────────────────────────────────── */
+  @keyframes shake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-7px)} 30%{transform:translateX(7px)} 45%{transform:translateX(-5px)} 60%{transform:translateX(5px)} 75%{transform:translateX(-3px)} 90%{transform:translateX(3px)} }
+  #psycho-form .field.shake { animation: shake 0.45s ease both; }
+  #psycho-form .field.field-error > label { color: #ff2d78 !important; }
+  #psycho-form .field.field-error input,
+  #psycho-form .field.field-error select,
+  #psycho-form .field.field-error textarea { border-bottom-color: rgba(255,45,120,0.7) !important; }
+  #psycho-form .field.field-error .choice-grid::after {
+    content: '← pick one'; display: block; grid-column: 1/-1;
+    font-size: 10px; letter-spacing: 2px; color: rgba(255,45,120,0.7);
+    text-transform: uppercase; margin-top: 6px;
+  }
+  .q-item.q-error .q-text { color: rgba(255,45,120,0.85); }
+  .q-item.q-error { animation: shake 0.45s ease both; }
+
+  /* ── Personality Teaser ────────────────────────────────────────────────── */
+  .psych-teaser {
+    margin: 28px 0 4px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(192,96,255,0.08) 0%, rgba(255,85,0,0.06) 100%);
+    border: 1px solid rgba(192,96,255,0.25);
+    border-left: 3px solid var(--accent3);
+    border-radius: 6px;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+    animation: fadeSlide 0.5s ease;
+  }
+  .psych-teaser::before {
+    content: '👁';
+    position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+    font-size: 36px; opacity: 0.12; pointer-events: none;
+  }
+  .psych-teaser-eyebrow {
+    font-size: 9px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--accent3); margin-bottom: 8px; opacity: 0.8;
+  }
+  .psych-teaser-label {
+    font-family: var(--font-head); font-size: 22px; letter-spacing: 3px;
+    color: var(--accent3); text-shadow: 0 0 18px rgba(192,96,255,0.5);
+    margin-bottom: 6px; line-height: 1.1;
+  }
+  .psych-teaser-label.blurred { filter: blur(5px); user-select: none; transition: filter 0.4s; }
+  .psych-teaser-desc {
+    font-size: 11px; color: rgba(200,210,240,0.7); font-style: italic; line-height: 1.7;
+  }
+  .psych-teaser-hint {
+    margin-top: 10px; font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(255,85,0,0.6);
+  }
+
+  /* ── Micro-feedback popup ──────────────────────────────────────────────── */
+  #psycho-whisper {
+    position: fixed; bottom: 80px; right: 28px;
+    font-family: var(--font-body); font-size: 11px; letter-spacing: 1px;
+    color: var(--accent3); background: rgba(10,5,24,0.92);
+    border: 1px solid rgba(192,96,255,0.3);
+    border-left: 2px solid var(--accent3);
+    padding: 10px 18px; border-radius: 4px;
+    backdrop-filter: blur(16px);
+    opacity: 0; transform: translateY(8px) scale(0.97);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none; z-index: 9998; max-width: 240px;
+    box-shadow: 0 0 24px rgba(192,96,255,0.15);
+  }
+  #psycho-whisper.show { opacity: 1; transform: translateY(0) scale(1); }
+
+  /* ── Flavored step counter ─────────────────────────────────────────────── */
+  .wiz-counter-flavor {
+    font-family: var(--font-body); font-size: 9px; letter-spacing: 2px;
+    color: rgba(192,96,255,0.55); text-transform: uppercase;
+    display: block; margin-top: 3px;
+  }
+
+  .form-sep { border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 28px 0 24px; }
+</style>
+
+<form id="psycho-form">
+
+  <!-- ── Progress bar (3 steps) ── -->
+  <div class="wiz-progress" id="wiz-progress">
+    <div class="wiz-step-dot active" data-n="1" data-step="0"></div>
+    <div class="wiz-connector" data-conn="0"></div>
+    <div class="wiz-step-dot" data-n="2" data-step="1"></div>
+    <div class="wiz-connector" data-conn="1"></div>
+    <div class="wiz-step-dot" data-n="3" data-step="2"></div>
+  </div>
+  <div class="wiz-labels">
+    <div class="wiz-label active" data-label="0">Info</div>
+    <div class="wiz-label" data-label="1">Questions</div>
+    <div class="wiz-label" data-label="2">Pref</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 1 — Basic Info
+  ══════════════════════════════════════════════════════════ -->
+  <div class="wiz-panel active" id="step-0">
+    <div class="form-section-title">Basic Info</div>
+    <div class="form-section-subtitle">Tell us a little about yourself</div>
+
+    <div class="field">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="Enter your name" required>
+    </div>
+
+    <div class="field">
+      <label>Gender</label>
+      <div class="choice-grid">
+        <input class="radio-toggle" type="radio" name="gender" value="M" id="g-male">
+        <label class="choice-card" for="g-male"><span class="card-label">Male</span></label>
+        <input class="radio-toggle" type="radio" name="gender" value="F" id="g-female">
+        <label class="choice-card" for="g-female"><span class="card-label">Female</span></label>
+        <input class="radio-toggle" type="radio" name="gender" value="O" id="g-other">
+        <label class="choice-card" for="g-other"><span class="card-label">Other</span></label>
+      </div>
+    </div>
+
+    <div class="field" style="max-width: 280px;">
+      <label>Birth Year</label>
+      <input type="number" name="birthyear" placeholder="e.g. 1999" min="1900" max="2010">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Country of Birth</label>
+        <input type="text" name="birthplace" placeholder="e.g. Myanmar">
+      </div>
+      <div class="field">
+        <label>Country of Residence</label>
+        <input type="text" name="residence" placeholder="e.g. New Zealand">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 2 — Personality Questions (10 questions, 2 per Big Five trait)
+  ══════════════════════════════════════════════════════════ -->
+  <div class="wiz-panel" id="step-1">
+    <div class="form-section-title">Personality Questions</div>
+    <div class="form-section-subtitle">Rate each statement honestly — the algorithm is watching</div>
+
+    <ol class="q-list">
+
+      <!-- ⚡ Extraversion -->
+      <div class="q-trait-divider">
+        <span class="q-trait-divider-badge badge-E">⚡ Extraversion</span>
+        <div class="q-trait-divider-line"></div>
+      </div>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">01</span>You love to talk — silence makes you restless</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question1" value="1" id="q1-1"><label for="q1-1">Strongly Disagree</label>
+          <input type="radio" name="question1" value="2" id="q1-2"><label for="q1-2">Disagree</label>
+          <input type="radio" name="question1" value="3" id="q1-3"><label for="q1-3">Neutral</label>
+          <input type="radio" name="question1" value="4" id="q1-4"><label for="q1-4">Agree</label>
+          <input type="radio" name="question1" value="5" id="q1-5"><label for="q1-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">16</span>Meeting strangers makes you a little nervous inside</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question16" value="1" id="q16-1"><label for="q16-1">Strongly Disagree</label>
+          <input type="radio" name="question16" value="2" id="q16-2"><label for="q16-2">Disagree</label>
+          <input type="radio" name="question16" value="3" id="q16-3"><label for="q16-3">Neutral</label>
+          <input type="radio" name="question16" value="4" id="q16-4"><label for="q16-4">Agree</label>
+          <input type="radio" name="question16" value="5" id="q16-5"><label for="q16-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+      <!-- 🔮 Openness -->
+      <div class="q-trait-divider">
+        <span class="q-trait-divider-badge badge-O">🔮 Openness</span>
+        <div class="q-trait-divider-line"></div>
+      </div>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">03</span>You see patterns others miss — ideas flow naturally to you</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question3" value="1" id="q3-1"><label for="q3-1">Strongly Disagree</label>
+          <input type="radio" name="question3" value="2" id="q3-2"><label for="q3-2">Disagree</label>
+          <input type="radio" name="question3" value="3" id="q3-3"><label for="q3-3">Neutral</label>
+          <input type="radio" name="question3" value="4" id="q3-4"><label for="q3-4">Agree</label>
+          <input type="radio" name="question3" value="5" id="q3-5"><label for="q3-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">11</span>You think deeply — surface answers never satisfy you</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question11" value="1" id="q11-1"><label for="q11-1">Strongly Disagree</label>
+          <input type="radio" name="question11" value="2" id="q11-2"><label for="q11-2">Disagree</label>
+          <input type="radio" name="question11" value="3" id="q11-3"><label for="q11-3">Neutral</label>
+          <input type="radio" name="question11" value="4" id="q11-4"><label for="q11-4">Agree</label>
+          <input type="radio" name="question11" value="5" id="q11-5"><label for="q11-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+      <!-- 💙 Agreeableness -->
+      <div class="q-trait-divider">
+        <span class="q-trait-divider-badge badge-A">💙 Agreeableness</span>
+        <div class="q-trait-divider-line"></div>
+      </div>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">04</span>You genuinely enjoy helping others — no strings attached</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question4" value="1" id="q4-1"><label for="q4-1">Strongly Disagree</label>
+          <input type="radio" name="question4" value="2" id="q4-2"><label for="q4-2">Disagree</label>
+          <input type="radio" name="question4" value="3" id="q4-3"><label for="q4-3">Neutral</label>
+          <input type="radio" name="question4" value="4" id="q4-4"><label for="q4-4">Agree</label>
+          <input type="radio" name="question4" value="5" id="q4-5"><label for="q4-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">09</span>Conflict doesn't scare you — you'll start it if needed</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question9" value="1" id="q9-1"><label for="q9-1">Strongly Disagree</label>
+          <input type="radio" name="question9" value="2" id="q9-2"><label for="q9-2">Disagree</label>
+          <input type="radio" name="question9" value="3" id="q9-3"><label for="q9-3">Neutral</label>
+          <input type="radio" name="question9" value="4" id="q9-4"><label for="q9-4">Agree</label>
+          <input type="radio" name="question9" value="5" id="q9-5"><label for="q9-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+      <!-- ✅ Conscientiousness -->
+      <div class="q-trait-divider">
+        <span class="q-trait-divider-badge badge-C">✅ Conscientiousness</span>
+        <div class="q-trait-divider-line"></div>
+      </div>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">02</span>When you commit to something, you do it properly</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question2" value="1" id="q2-1"><label for="q2-1">Strongly Disagree</label>
+          <input type="radio" name="question2" value="2" id="q2-2"><label for="q2-2">Disagree</label>
+          <input type="radio" name="question2" value="3" id="q2-3"><label for="q2-3">Neutral</label>
+          <input type="radio" name="question2" value="4" id="q2-4"><label for="q2-4">Agree</label>
+          <input type="radio" name="question2" value="5" id="q2-5"><label for="q2-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">05</span>You sometimes rush things and miss the details</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question5" value="1" id="q5-1"><label for="q5-1">Strongly Disagree</label>
+          <input type="radio" name="question5" value="2" id="q5-2"><label for="q5-2">Disagree</label>
+          <input type="radio" name="question5" value="3" id="q5-3"><label for="q5-3">Neutral</label>
+          <input type="radio" name="question5" value="4" id="q5-4"><label for="q5-4">Agree</label>
+          <input type="radio" name="question5" value="5" id="q5-5"><label for="q5-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+      <!-- 🌀 Neuroticism -->
+      <div class="q-trait-divider">
+        <span class="q-trait-divider-badge badge-N">🌀 Neuroticism</span>
+        <div class="q-trait-divider-line"></div>
+      </div>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">06</span>Pressure doesn't shake you — you stay calm when it counts</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question6" value="1" id="q6-1"><label for="q6-1">Strongly Disagree</label>
+          <input type="radio" name="question6" value="2" id="q6-2"><label for="q6-2">Disagree</label>
+          <input type="radio" name="question6" value="3" id="q6-3"><label for="q6-3">Neutral</label>
+          <input type="radio" name="question6" value="4" id="q6-4"><label for="q6-4">Agree</label>
+          <input type="radio" name="question6" value="5" id="q6-5"><label for="q6-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+      <li class="q-item">
+        <div class="q-text"><span class="q-num">13</span>Your brain runs worst-case scenarios... just in case</div>
+        <div class="q-scale">
+          <span class="q-scale-label">Disagree</span>
+          <input type="radio" name="question13" value="1" id="q13-1"><label for="q13-1">Strongly Disagree</label>
+          <input type="radio" name="question13" value="2" id="q13-2"><label for="q13-2">Disagree</label>
+          <input type="radio" name="question13" value="3" id="q13-3"><label for="q13-3">Neutral</label>
+          <input type="radio" name="question13" value="4" id="q13-4"><label for="q13-4">Agree</label>
+          <input type="radio" name="question13" value="5" id="q13-5"><label for="q13-5">Strongly Agree</label>
+          <span class="q-scale-label">Agree</span>
+        </div>
+      </li>
+
+    </ol>
+
+    <!-- ── Mid-form personality teaser ── -->
+    <div class="psych-teaser" id="mid-teaser">
+      <div class="psych-teaser-eyebrow">⚡ Early signal detected</div>
+      <div class="psych-teaser-label blurred" id="teaser-label">ARCHITECT TYPE</div>
+      <div class="psych-teaser-desc">The algorithm has already begun profiling you. Complete the final step to unlock your full psychological breakdown.</div>
+      <div class="psych-teaser-hint">→ Keep going to reveal your true type</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 3 — Preferences
+  ══════════════════════════════════════════════════════════ -->
+  <div class="wiz-panel" id="step-2">
+    <div class="form-section-title">Your Preferences</div>
+    <div class="form-section-subtitle">The fun stuff — tell us about your vibe</div>
+
+    <div class="field">
+      <label>Favourite hobby</label>
+      <select name="hobby">
+        <option value="coding">Coding</option>
+        <option value="art">Art / Design</option>
+        <option value="gaming">Gaming</option>
+        <option value="cooking">Cooking</option>
+        <option value="music">Music</option>
+        <option value="reading">Reading</option>
+        <option value="sports">Sports</option>
+        <option value="travel">Travel</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Most appealing job</label>
+      <select name="job">
+        <option value="ceo">CEO of large mega-corporation</option>
+        <option value="astronaut">Astronaut</option>
+        <option value="doctor">Medical doctor</option>
+        <option value="rockstar">Rock star</option>
+        <option value="software_engineer">Software Engineer</option>
+        <option value="gamer">Professional Gamer</option>
+        <option value="mad_scientist">Mad Scientist</option>
+        <option value="spy">Secret Agent / Spy</option>
+        <option value="psychologist">Psychologist</option>
+        <option value="military_general">Military General</option>
+        <option value="napper">Professional Napper</option>
+        <option value="garbage">Refuse collection operative</option>
+      </select>
+    </div>
+
+    <hr class="form-sep">
+
+    <div class="field">
+      <label>Reaction to stress</label>
+      <div class="choice-grid">
+        <input class="radio-toggle" type="radio" name="stress" value="sleep" id="st-sleep">
+        <label class="choice-card" for="st-sleep"><span class="card-label">Sleep</span></label>
+        <input class="radio-toggle" type="radio" name="stress" value="eat" id="st-eat">
+        <label class="choice-card" for="st-eat"><span class="card-label">Eat</span></label>
+        <input class="radio-toggle" type="radio" name="stress" value="panic" id="st-panic">
+        <label class="choice-card" for="st-panic"><span class="card-label">Panic</span></label>
+        <input class="radio-toggle" type="radio" name="stress" value="laugh" id="st-laugh">
+        <label class="choice-card" for="st-laugh"><span class="card-label">Laugh for no reason</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Pets you like</label>
+      <div class="choice-grid">
+        <input class="pet-toggle" type="checkbox" name="pet" value="dog" id="pet-dog">
+        <label class="choice-card" for="pet-dog"><span class="card-label">Dog</span></label>
+        <input class="pet-toggle" type="checkbox" name="pet" value="cat" id="pet-cat">
+        <label class="choice-card" for="pet-cat"><span class="card-label">Cat</span></label>
+        <input class="pet-toggle" type="checkbox" name="pet" value="duck" id="pet-duck">
+        <label class="choice-card" for="pet-duck"><span class="card-label">Duck</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Main character energy</label>
+      <div class="choice-grid">
+        <input class="radio-toggle" type="radio" name="character" value="npc" id="ch-npc">
+        <label class="choice-card" for="ch-npc"><span class="card-label">NPC</span></label>
+        <input class="radio-toggle" type="radio" name="character" value="side" id="ch-side">
+        <label class="choice-card" for="ch-side"><span class="card-label">Side Character</span></label>
+        <input class="radio-toggle" type="radio" name="character" value="main" id="ch-main">
+        <label class="choice-card" for="ch-main"><span class="card-label">Main Character</span></label>
+        <input class="radio-toggle" type="radio" name="character" value="villain" id="ch-villain">
+        <label class="choice-card" for="ch-villain"><span class="card-label">Villain Arc</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Message or comment</label>
+      <textarea name="message" placeholder="Give me a straight answer. I can take it!"></textarea>
+    </div>
+  </div>
+
+  <!-- ── Navigation ── -->
+  <div class="wiz-nav">
+    <div class="wiz-nav-left">
+      <button type="button" class="wiz-btn wiz-btn-prev" id="wiz-prev" style="display:none">← Prev</button>
+    </div>
+    <div style="text-align:center">
+      <span class="wiz-counter" id="wiz-counter">Step 1 of 3</span>
+      <span class="wiz-counter-flavor" id="wiz-flavor">identity scan initialising...</span>
+    </div>
+    <div class="wiz-nav-right">
+      <button type="button" class="wiz-btn wiz-btn-next" id="wiz-next">Next →</button>
+      <button type="submit" class="wiz-btn wiz-btn-submit" id="wiz-submit" style="display:none">Submit →</button>
+    </div>
+  </div>
+
+</form>
+
+<!-- Micro-feedback whisper popup -->
+<div id="psycho-whisper"></div>
