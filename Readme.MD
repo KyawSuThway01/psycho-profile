@@ -1,5 +1,7 @@
 # 🧠 PsychoProfile — AI Personality Analyzer
 
+Demo live link: https://psycho-profile.onrender.com/
+
 > *A hilariously dramatic AI-powered psychological profiler built with FastAPI, Groq LLM, and a dark psychedelic UI.*
 
 Users fill out a 3-step form, answer 10 Big Five personality questions, and receive a full psychological dossier — complete with a career match, archetype code name, villain origin story, soul city, spirit animal photos, and AI-recommended movies.
