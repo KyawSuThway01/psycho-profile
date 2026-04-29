@@ -222,7 +222,7 @@ In `main.py → call_groq()`, change the `"model"` field to any model available 
 
 | Home Page | View Input | Profile |
 |---|---|---|
-| ![](static/images/home.png) | ![](static/images/data.png) | ![](static/images/profile.png]
+| ![](static/images/home.png) | ![](static/images/data.png) | ![](static/images/profile.png] |
 | 3-step wizard with Big Five questions | Dossier with trait bars and pills | Full psychedelic profile card with AI text |
 
 ---
