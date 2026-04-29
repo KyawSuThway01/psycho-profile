@@ -220,8 +220,9 @@ In `main.py → call_groq()`, change the `"model"` field to any model available 
 
 ## 📸 Screenshots
 
-| Fill Form static/images/Player.jpg | View Input | Profile |
+| Fill Form | View Input | Profile |
 |---|---|---|
+| ![](static/images/Player.jpg) |
 | 3-step wizard with Big Five questions | Dossier with trait bars and pills | Full psychedelic profile card with AI text |
 
 ---
